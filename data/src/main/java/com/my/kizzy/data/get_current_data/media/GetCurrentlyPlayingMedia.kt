@@ -107,8 +107,15 @@ class GetCurrentPlayingMedia @Inject constructor(
 
             val override = MediaRpcOverrides.of(pkg)
             val playbackState = mediaController.playbackState?.state
-            val isPaused = playbackState == PlaybackState.STATE_PAUSED ||
-                playbackState == PlaybackState.STATE_STOPPED
+            // A closed/killed player often leaves its session behind in STATE_NONE/STATE_ERROR
+            // (or with no state at all) instead of PAUSED/STOPPED — treat those as "not playing"
+            // too, otherwise hide-on-pause misses them and the presence stays up with the
+            // fallback elapsed timer. null already renders as paused below (icon/text).
+            val isPaused = playbackState == null ||
+                playbackState == PlaybackState.STATE_PAUSED ||
+                playbackState == PlaybackState.STATE_STOPPED ||
+                playbackState == PlaybackState.STATE_NONE ||
+                playbackState == PlaybackState.STATE_ERROR
             if (Prefs[Prefs.MEDIA_RPC_HIDE_ON_PAUSE, false] && isPaused) {
                 logger.d("MediaRPC", "invoke(): $pkg paused and hide-on-pause is on, skipping")
                 continue

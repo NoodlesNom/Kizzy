@@ -156,12 +156,16 @@ class MediaRpcService : Service() {
                 if (playingMedia.name.isBlank()) {
                     logger.d("MediaRPC", "Updating RPC with empty data, stopping RPC")
                     kizzyRPC.closeRPC()
+                    return
                 }
                 kizzyRPC.updateRPC(playingMedia, enableTimestamps)
             }
             false -> {
                 if (playingMedia.name.isBlank()) {
                     logger.d("MediaRPC", "Skipping RPC update with empty data")
+                    // Socket may be mid-reconnect (not "running" yet) — close anyway so the
+                    // pending reconnect doesn't replay the last presence.
+                    kizzyRPC.closeRPC()
                     return
                 }
                 kizzyRPC.apply {
